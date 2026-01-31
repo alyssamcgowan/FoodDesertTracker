@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Food Desert Score Lookup</title>
+
+  <style>
+    body {
+      font-family: Inter, Arial, sans-serif;
+      background: #f5f7fa;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+    }
+
+    .container {
+      background: white;
+      margin-top: 60px;
+      padding: 32px;
+      width: 440px;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    }
+
+    h2 {
+      margin-top: 0;
+      font-weight: 600;
+      color: #222;
+      text-align: center;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      margin-bottom: 12px;
+      box-sizing: border-box;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: none;
+      background: #4a6cf7;
+      color: white;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.2s ease;
+    }
+
+    button:hover {
+      background: #3d5be0;
+    }
+
+    #result {
+      margin-top: 24px;
+      padding: 16px;
+      border-radius: 12px;
+      background: #f0f2f5;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    .score-badge {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-weight: 600;
+      margin-top: 8px;
+    }
+
+    .low { background: #d4f8d4; color: #1b7a1b; }
+    .medium { background: #fff3cd; color: #8a6d3b; }
+    .high { background: #f8d7da; color: #842029; }
+
+    .info-box {
+      margin-top: 24px;
+      padding: 20px;
+      background: #ffffff;
+      border-left: 5px solid #4a6cf7;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    }
+
+    .info-box h4 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      font-size: 18px;
+      font-weight: 600;
+      color: #222;
+    }
+
+    .info-box p {
+      margin: 0 0 10px 0;
+      line-height: 1.55;
+      color: #444;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h2>Food Desert Score Lookup</h2>
+
+    <input id="zipInput" placeholder="Enter ZIP code" />
+    <button onclick="lookup()">Check Score</button>
+
+    <div id="result"></div>
+  </div>
+
+  <script>
+    function scoreClass(score) {
+      if (score >= 70) return "high";
+      if (score >= 40) return "medium";
+      return "low";
+    }
+
+    async function lookup() {
+      const zip = document.getElementById("zipInput").value.trim();
+      const resultDiv = document.getElementById("result");
+      resultDiv.innerHTML = "Loading...";
+
+      try {
+        const response = await fetch(`http://127.0.0.1:5000/score_for_zip/${zip}`);
+
+        if (!response.ok) {
+          const text = await response.text();
+          resultDiv.innerHTML = `<strong>Server error:</strong> ${response.status}<br>${text}`;
+          return;
+        }
+
+        const data = await response.json();
+
+        if (data.error) {
+          resultDiv.innerHTML = `<strong>Error:</strong> ${data.error}`;
+          return;
+        }
+
+        const badgeClass = scoreClass(data.score);
+
+        resultDiv.innerHTML = `
+          <p><strong>ZIP:</strong> ${data.zipcode}</p>
+          <p><strong>Tract:</strong> ${data.tract}</p>
+          <p><strong>Score:</strong> 
+            <span class="score-badge ${badgeClass}">
+              ${data.score}
+            </span>
+          </p>
+
+          <div class="info-box">
+            <h4>What This Score Means</h4>
+            <p>
+              The Food Desert Score is a simple way to summarize how difficult it is 
+              for people in a specific census tract to access healthy, affordable food. 
+              Higher scores indicate greater barriers to food access, while lower scores 
+              suggest that residents have better access to grocery stores and resources.
+            </p>
+            <p>
+              The score is not a federal metric — it’s a custom heuristic built from the 
+              USDA Food Access Research Atlas dataset. It blends several indicators into 
+              a single, easy‑to‑interpret number.
+            </p>
+          </div>
+        `;
+      } catch (err) {
+        resultDiv.innerHTML = `<strong>Request failed:</strong> ${err}`;
+      }
+    }
+  </script>
+</body>
+</html>
